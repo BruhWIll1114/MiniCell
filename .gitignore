@@ -18,4 +18,5 @@ Release/
 *.tlog
 
 .vscode/
+.agents/
 docs/STUDY_PLAN.md
