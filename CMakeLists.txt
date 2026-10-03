@@ -12,4 +12,5 @@ add_executable(MiniCell
 target_include_directories(MiniCell PRIVATE
     Engine/Core/
     Engine/Containers/
+    Engine/Memory/
 )

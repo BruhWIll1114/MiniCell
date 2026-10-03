@@ -4,6 +4,7 @@
 #include "Assert.h"
 #include "Types.h"
 #include "RingBuffer.h"
+#include "ScopeGuard.h"
 
 int main()
 {
@@ -12,6 +13,13 @@ int main()
     
     constexpr minicell::usize capacity = 64;
     minicell::RingBuffer<f32, capacity> buffer;
+
+    {
+        minicell::ScopeGuard guard([]() {
+            minicell::logInfo("leave scope"); 
+        });
+        minicell::logInfo("enter scope");
+    }
 
     minicell::logInfo("MiniCell starting...");
 
