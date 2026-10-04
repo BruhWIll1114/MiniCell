@@ -21,8 +21,14 @@
 
 - **MiniCell:** Simple simulation of ring buffer added;
 
-### Day 3 - 2026-10-01
+### Day 4 - 2026-10-01
 
-- **LearnCpp:** 14.1 - 14.15 (OOP, constructor/deconstructor)
+- **LearnCpp:** 14.1 - 14.15 (OOP, constructor/destructor)
 
 - **MiniCell:** Logger refactor; Scope guard added;
+
+### Day 5 - 2026-10-03
+
+- **LearnCpp:** 15.1 - 15.7 (destructor, class&header file, this pointer)
+
+- **MiniCell:** Binary reader added, includes little-endian concept, binary shifting, header checking;

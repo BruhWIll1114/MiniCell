@@ -1,10 +1,47 @@
 #include <cstdio>
 #include <string>
+#include <cstring>
 #include "Logger.h"
-#include "Assert.h"
+#include "MCAssert.h"
 #include "Types.h"
 #include "RingBuffer.h"
 #include "ScopeGuard.h"
+#include "BinaryReader.h"
+
+enum class ParseResult {
+    PASS,
+    TRUNCATED,
+    BAD_MAGIC,
+};
+
+ParseResult parseAssetHeader(const minicell::u8* data, minicell::usize size, minicell::u16& version, minicell::u32& payloadSize) {
+    minicell::BinaryReader reader (data, size);
+    minicell::u8 magic[4];
+
+    if (!reader.readBytes(magic, 4)) return ParseResult::TRUNCATED;
+    if (std::memcmp(magic, "MCLL", sizeof(magic)) != 0) return ParseResult::BAD_MAGIC;
+    if (!reader.readU16(version)) return ParseResult::TRUNCATED;
+    if (!reader.readU32(payloadSize)) return ParseResult::TRUNCATED;
+    return ParseResult::PASS;
+}
+
+void testAsset(const minicell::u8* data, minicell::usize size) {
+    minicell::u16 version       = 0;
+    minicell::u32 payloadSize   = 0;
+
+    const ParseResult res = parseAssetHeader(data, size, version, payloadSize);
+
+    char msg[64];
+    if (res == ParseResult::PASS) {
+        std::snprintf(msg, sizeof(msg), "asset version=%u payloadSize=%u", static_cast<unsigned>(version), static_cast<unsigned>(payloadSize));
+        minicell::logInfo(msg);    
+        
+    } else if (res == ParseResult::BAD_MAGIC) {
+        minicell::logError("asset bad magic");
+    } else {
+        minicell::logError("asset truncated");
+    }
+}
 
 int main()
 {
@@ -14,6 +51,9 @@ int main()
     constexpr minicell::usize capacity = 64;
     minicell::RingBuffer<f32, capacity> buffer;
 
+    constexpr minicell::u8 kAsset[]    = { 'M','C','L','L', 1, 0, 0x10, 0, 0, 0 };
+    constexpr minicell::u8 kBadMagic[] = { 'X','C','L','L', 1, 0, 0x10, 0, 0, 0 };
+
     {
         minicell::ScopeGuard guard([]() {
             minicell::logInfo("leave scope"); 
@@ -22,6 +62,9 @@ int main()
     }
 
     minicell::logInfo("MiniCell starting...");
+
+    testAsset(kAsset, sizeof(kAsset));
+    testAsset(kBadMagic, sizeof(kBadMagic));
 
     for (minicell::u32 frame = 0; frame < totalFrames; ++frame) {
 
@@ -47,7 +90,7 @@ int main()
         std::snprintf(msg, sizeof(msg), "min: %.1f max: %.1f", static_cast<f64>(min), static_cast<f64>(max));
         minicell::logInfo(msg);    
     }
-
+    
     minicell::logInfo("MiniCell shutting down...");
     return 0;
 }
