@@ -7,6 +7,7 @@
 #include "RingBuffer.h"
 #include "ScopeGuard.h"
 #include "BinaryReader.h"
+#include "LinearAllocator.h"
 
 enum class ParseResult {
     PASS,
@@ -43,6 +44,24 @@ void testAsset(const minicell::u8* data, minicell::usize size) {
     }
 }
 
+void runArenaFrames(minicell::LinearAllocator& arena) {
+    for (minicell::u32 frame = 0; frame < 100; ++frame) {
+        void* first = nullptr;
+        for (minicell::usize i = 0; i < 10; ++i) {
+            void* p = arena.allocate(32);
+            if (i == 0) { first = p; }
+        }
+
+        if (frame % 25 == 0) {
+            char msg[64];
+            std::snprintf(msg, sizeof(msg), "frame=%u first=%p used=%zu", frame, first, arena.used());
+            minicell::logInfo(msg);
+        }
+
+        arena.reset();
+    }
+}
+
 int main()
 {
     constexpr minicell::u32 totalFrames = 120;
@@ -51,8 +70,8 @@ int main()
     constexpr minicell::usize capacity = 64;
     minicell::RingBuffer<f32, capacity> buffer;
 
-    constexpr minicell::u8 kAsset[]    = { 'M','C','L','L', 1, 0, 0x10, 0, 0, 0 };
-    constexpr minicell::u8 kBadMagic[] = { 'X','C','L','L', 1, 0, 0x10, 0, 0, 0 };
+    // constexpr minicell::u8 kAsset[]    = { 'M','C','L','L', 1, 0, 0x10, 0, 0, 0 };
+    // constexpr minicell::u8 kBadMagic[] = { 'X','C','L','L', 1, 0, 0x10, 0, 0, 0 };
 
     {
         minicell::ScopeGuard guard([]() {
@@ -63,8 +82,11 @@ int main()
 
     minicell::logInfo("MiniCell starting...");
 
-    testAsset(kAsset, sizeof(kAsset));
-    testAsset(kBadMagic, sizeof(kBadMagic));
+    // testAsset(kAsset, sizeof(kAsset));
+    // testAsset(kBadMagic, sizeof(kBadMagic));
+
+    minicell::LinearAllocator arena;
+    runArenaFrames(arena);
 
     for (minicell::u32 frame = 0; frame < totalFrames; ++frame) {
 
