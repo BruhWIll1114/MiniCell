@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <string>
 #include <cstring>
+#include <memory>
 #include "Logger.h"
 #include "MCAssert.h"
 #include "Types.h"
@@ -8,6 +9,7 @@
 #include "ScopeGuard.h"
 #include "BinaryReader.h"
 #include "LinearAllocator.h"
+#include "AssetManager.h"
 
 enum class ParseResult {
     PASS,
@@ -85,8 +87,25 @@ int main()
     // testAsset(kAsset, sizeof(kAsset));
     // testAsset(kBadMagic, sizeof(kBadMagic));
 
-    minicell::LinearAllocator arena;
-    runArenaFrames(arena);
+    // minicell::LinearAllocator arena;
+    // runArenaFrames(arena);
+
+    const minicell::u8 array[] = {1, 2, 3, 4};
+    auto assets = std::make_unique<minicell::AssetManager>();
+    minicell::LoadedAsset a = assets->loadFromMemory(array, sizeof(array));
+
+    char msg[64];
+    std::snprintf(msg, sizeof(msg), "asset bytes=%zu", a.byteSize());
+    minicell::logInfo(msg);
+
+    std::snprintf(msg, sizeof(msg), "before move data=%p", a.bytes.data());
+    minicell::logInfo(msg);
+
+    minicell::LoadedAsset b = std::move(a);
+    std::snprintf(msg, sizeof(msg), "after move data=%p; sourceBytes=%zu", b.bytes.data(), a.byteSize());
+    minicell::logInfo(msg);
+
+    assets->keep(std::move(a));
 
     for (minicell::u32 frame = 0; frame < totalFrames; ++frame) {
 
@@ -112,7 +131,9 @@ int main()
         std::snprintf(msg, sizeof(msg), "min: %.1f max: %.1f", static_cast<f64>(min), static_cast<f64>(max));
         minicell::logInfo(msg);    
     }
-    
+
+    assets.reset();
+
     minicell::logInfo("MiniCell shutting down...");
     return 0;
 }

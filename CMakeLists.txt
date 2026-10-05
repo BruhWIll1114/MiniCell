@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(MiniCell
     Sandbox/main.cpp
     Engine/Core/Logger.cpp
+    Engine/Assets/AssetManager.cpp
 )
 
 target_include_directories(MiniCell PRIVATE
@@ -14,4 +15,5 @@ target_include_directories(MiniCell PRIVATE
     Engine/Containers/
     Engine/Memory/
     Engine/IO/
+    Engine/Assets/
 )

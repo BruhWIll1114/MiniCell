@@ -3,7 +3,6 @@
 
 namespace minicell
 {
-
     namespace 
     {
         void logMessage(LogLevel level, const char* message)
