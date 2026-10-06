@@ -8,6 +8,7 @@ add_executable(MiniCell
     Sandbox/main.cpp
     Engine/Core/Logger.cpp
     Engine/Assets/AssetManager.cpp
+    Engine/Platform/Win32Platform.cpp
 )
 
 target_include_directories(MiniCell PRIVATE
@@ -16,4 +17,5 @@ target_include_directories(MiniCell PRIVATE
     Engine/Memory/
     Engine/IO/
     Engine/Assets/
+    Engine/Platform/
 )

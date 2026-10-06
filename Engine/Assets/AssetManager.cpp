@@ -8,7 +8,8 @@
 namespace minicell
 {
     // copies the raw bytes once into a new asset and returns it by implicit move
-    LoadedAsset AssetManager::loadFromMemory(const u8* data, usize size)    {
+    LoadedAsset AssetManager::loadFromMemory(const u8* data, usize size)
+    {
         LoadedAsset asset;
         asset.bytes.assign(data, data + size);      // copy size bytes from memory into the asset's own heap buffer
         return asset;

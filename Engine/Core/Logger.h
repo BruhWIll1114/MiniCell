@@ -4,9 +4,9 @@ namespace minicell
 {
     enum class LogLevel
     {
-        INFO,
-        WARNING,
-        ERROR
+        Info,
+        Warning,
+        Error
     };
 
     void logInfo(const char* message);

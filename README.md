@@ -75,5 +75,12 @@
     - it needs extra heap to store the count;
     - it isn't clear who frees the asset or when;
     - two objects point at each other never get freed;
-  - **A named && parameter** is an lvalue;
-  - **Use -> with a unique_ptr**;
+
+### Day 7 - 2026-10-06
+- **LearnCpp:** 
+  - 25.1 - 25.4 (virtual function, override/final)
+
+- **MiniCell:** 
+  - **IPlatform.h** is the parent of all the platform created, act as a base case.
+  - **Win32Platform.h** is the window class declaration inherits from IPlatform.
+  - **Win32Platform.cpp** is the window implementation.

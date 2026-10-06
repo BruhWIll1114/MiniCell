@@ -9,13 +9,13 @@ namespace minicell
         {
             switch (level)
             {
-            case LogLevel::INFO:
+            case LogLevel::Info:
                 std::cout << "[INFO] " << message << '\n';
                 break;
-            case LogLevel::WARNING:
+            case LogLevel::Warning:
                 std::cout << "[WARNING] " << message << '\n';
                 break;
-            case LogLevel::ERROR:
+            case LogLevel::Error:
                 std::cerr << "[ERROR] " << message << '\n';
                 break;
             }
@@ -24,16 +24,16 @@ namespace minicell
     
     void logInfo(const char* message)
     {
-        logMessage(LogLevel::INFO, message);
+        logMessage(LogLevel::Info, message);
     }
 
     void logWarning(const char* message)
     {
-        logMessage(LogLevel::WARNING, message);
+        logMessage(LogLevel::Warning, message);
     }
 
     void logError(const char* message)
     {
-        logMessage(LogLevel::ERROR, message);
+        logMessage(LogLevel::Error, message);
     }
 }

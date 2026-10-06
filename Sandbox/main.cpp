@@ -10,6 +10,7 @@
 #include "BinaryReader.h"
 #include "LinearAllocator.h"
 #include "AssetManager.h"
+#include "IPlatform.h"
 
 enum class ParseResult {
     PASS,
@@ -47,7 +48,7 @@ void testAsset(const minicell::u8* data, minicell::usize size) {
 }
 
 void runArenaFrames(minicell::LinearAllocator& arena) {
-    for (minicell::u32 frame = 0; frame < 100; ++frame) {
+        for (minicell::u32 frame = 0; frame < 100; ++frame) {
         void* first = nullptr;
         for (minicell::usize i = 0; i < 10; ++i) {
             void* p = arena.allocate(32);
@@ -87,25 +88,45 @@ int main()
     // testAsset(kAsset, sizeof(kAsset));
     // testAsset(kBadMagic, sizeof(kBadMagic));
 
-    // minicell::LinearAllocator arena;
-    // runArenaFrames(arena);
 
-    const minicell::u8 array[] = {1, 2, 3, 4};
-    auto assets = std::make_unique<minicell::AssetManager>();
-    minicell::LoadedAsset a = assets->loadFromMemory(array, sizeof(array));
+    {
+        std::unique_ptr<minicell::IPlatform> platform = minicell::createPlatform();
+        const minicell::u64 freq = platform->getTicksPerSecond();
+        const std::string exeDir = platform->getExeDir();
 
-    char msg[64];
-    std::snprintf(msg, sizeof(msg), "asset bytes=%zu", a.byteSize());
-    minicell::logInfo(msg);
+        char msg[256];
+        std::snprintf(msg, sizeof(msg), "ticksPerSecond=%llu", static_cast<unsigned long long>(freq));
+        minicell::logInfo(msg);
+        std::snprintf(msg, sizeof(msg), "exeDir=%s", exeDir.c_str());
+        minicell::logInfo(msg);
 
-    std::snprintf(msg, sizeof(msg), "before move data=%p", a.bytes.data());
-    minicell::logInfo(msg);
+        minicell::LinearAllocator arena;
+        minicell::u64 start = platform->getTicks();
+        runArenaFrames(arena);
+        minicell::u64 end = platform->getTicks();
+        double res = (end - start) * 1000.0 / platform->getTicksPerSecond();
+        std::snprintf(msg, sizeof(msg), "arena frames took %.3f ms", res);
+        minicell::logInfo(msg);
+    }
 
-    minicell::LoadedAsset b = std::move(a);
-    std::snprintf(msg, sizeof(msg), "after move data=%p; sourceBytes=%zu", b.bytes.data(), a.byteSize());
-    minicell::logInfo(msg);
+    {    
+        const minicell::u8 array[] = {1, 2, 3, 4};
+        auto assets = std::make_unique<minicell::AssetManager>();
+        minicell::LoadedAsset a = assets->loadFromMemory(array, sizeof(array));
 
-    assets->keep(std::move(a));
+        char msg[64];
+        std::snprintf(msg, sizeof(msg), "asset bytes=%zu", a.byteSize());
+        minicell::logInfo(msg);
+
+        std::snprintf(msg, sizeof(msg), "before move data=%p", a.bytes.data());
+        minicell::logInfo(msg);
+
+        minicell::LoadedAsset b = std::move(a);
+        std::snprintf(msg, sizeof(msg), "after move data=%p; sourceBytes=%zu", b.bytes.data(), a.byteSize());
+        minicell::logInfo(msg);
+
+        assets->keep(std::move(a));
+    }
 
     for (minicell::u32 frame = 0; frame < totalFrames; ++frame) {
 
@@ -132,7 +153,7 @@ int main()
         minicell::logInfo(msg);    
     }
 
-    assets.reset();
+    //assets.reset();
 
     minicell::logInfo("MiniCell shutting down...");
     return 0;
