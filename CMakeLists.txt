@@ -9,6 +9,17 @@ add_executable(MiniCell
     Engine/Core/Logger.cpp
     Engine/Assets/AssetManager.cpp
     Engine/Platform/Win32Platform.cpp
+    Engine/IO/FileSystem.cpp
+)
+
+add_custom_command(TARGET MiniCell POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/Sandbox/assets
+        $<TARGET_FILE_DIR:MiniCell>/assets
+)
+
+target_compile_definitions(MiniCell PRIVATE 
+    MINICELL_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 target_include_directories(MiniCell PRIVATE

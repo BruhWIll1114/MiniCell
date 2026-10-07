@@ -76,7 +76,8 @@
     - it isn't clear who frees the asset or when;
     - two objects point at each other never get freed;
 
-### Day 7 - 2026-10-06
+### Day 8 - 2026-10-06
+
 - **LearnCpp:** 
   - 25.1 - 25.4 (virtual function, override/final)
 
@@ -84,3 +85,12 @@
   - **IPlatform.h** is the parent of all the platform created, act as a base case.
   - **Win32Platform.h** is the window class declaration inherits from IPlatform.
   - **Win32Platform.cpp** is the window implementation.
+
+### Day 9 - 2026-10-07
+
+- **LearnCpp:** 
+  - 28.1, 28.6 - 28.7 (file I/O, istream/ofstream, seekg/tellg);
+
+- **MiniCell:** 
+  - **File System** added with file reading, accessing and writing;
+  - Assets copied next to the exe by POST_BUILD; path built from `getExeDir()`;
