@@ -13,18 +13,97 @@
 #include "AssetManager.h"
 #include "IPlatform.h"
 #include "FileSystem.h"
+#include "Handle.h"
 
 // ---- Test section switches ----
 constexpr bool kTestScopeGuard    = true;
-constexpr bool kTestAssetHeader   = false;
+constexpr bool kTestAssetHeader   = true;
 constexpr bool kTestFileSystem    = false;
 constexpr bool kTestTextureFile   = true;
 constexpr bool kTestTextFile      = true;
 constexpr bool kTestWin32Platform = false;
-constexpr bool kTestAssetManager  = false;
+constexpr bool kTestAssetManager  = true;
 constexpr bool kTestRingBuffer    = false;
+constexpr bool kTestHandle        = false;
 
 
+// -- AssetManager Section --
+static int g_amFailures = 0;
+
+static void amCheck(bool ok, const char* name) {
+    char msg[128];
+    std::snprintf(msg, sizeof(msg), "%s: %s", ok ? "PASS" : "FAIL", name);
+    if (ok) minicell::logInfo(msg);
+    else { minicell::logError(msg); ++g_amFailures; }
+}
+
+void testAssetManager(const std::string& assetDir) {
+    using minicell::AssetManager;
+    using minicell::LoadedAsset;
+    using minicell::TextureHandle;
+    using minicell::FileResult;
+
+    auto assets = std::make_unique<AssetManager>();
+
+    std::vector<minicell::u8> bytes;
+    const FileResult r = minicell::readBinaryFile(assetDir + "tex.mc", bytes);
+    amCheck(r == FileResult::Pass, "read tex.mc");
+    amCheck(bytes.size() == 18, "tex.mc is 18 bytes");
+
+    LoadedAsset asset = assets->loadFromMemory(bytes.data(), bytes.size());
+    TextureHandle h = assets->createTexture(std::move(asset));
+
+    char msg[64];
+    std::snprintf(msg, sizeof(msg), "texture handle=%u bytes=18", static_cast<unsigned>(h.id));
+    minicell::logInfo(msg);
+
+    const LoadedAsset* got = assets->tryGet(h);
+    amCheck(got != nullptr, "valid handle is non-null");
+    amCheck(got != nullptr && got->byteSize() == 18, "valid handle byteSize==18");
+    amCheck(h.id == 0, "first handle id is 0");
+
+    amCheck(assets->tryGet(TextureHandle{}) == nullptr, "default handle returns nullptr");
+    amCheck(assets->tryGet(TextureHandle{99}) == nullptr, "handle 99 returns nullptr");
+
+    std::snprintf(msg, sizeof(msg), "asset manager tests done, failures=%d", g_amFailures);
+    minicell::logInfo(msg);
+}
+
+// -- Handle Section --
+static int g_handleFailures = 0;
+
+static void handleCheck(bool ok, const char* name) {
+    char msg[128];
+    std::snprintf(msg, sizeof(msg), "%s: %s", ok ? "PASS" : "FAIL", name);
+    if (ok) minicell::logInfo(msg);
+    else { minicell::logError(msg); ++g_handleFailures; }
+}
+
+void testHandle() {
+    using minicell::TextureHandle;
+    using minicell::MeshHandle;
+
+    TextureHandle a{};
+    handleCheck(a.isValid() == false, "default TextureHandle is invalid");
+    handleCheck(a.id == TextureHandle::kInvalid, "default id is kInvalid");
+
+    TextureHandle b{0};
+    handleCheck(b.isValid() == true, "id 0 is valid");
+
+    TextureHandle c{5};
+    handleCheck(c.isValid() == true, "id 5 is valid");
+    handleCheck(b == c ? false : true, "id 0 != id 5");
+    handleCheck(TextureHandle{5} == c, "same id compares equal");
+
+    MeshHandle m{};
+    handleCheck(m.isValid() == false, "default MeshHandle is invalid");
+
+    char msg[64];
+    std::snprintf(msg, sizeof(msg), "handle tests done, failures=%d", g_handleFailures);
+    minicell::logInfo(msg);
+}
+
+// -- File System Section --
 static int g_fsFailures = 0;
 
 static void fsCheck(bool ok, const char* name) {
@@ -198,6 +277,15 @@ int main()
 
     minicell::logInfo("MiniCell starting...");
 
+    // -- Handle Section --
+    if constexpr (kTestHandle) {
+        testHandle();
+
+        // -- must fail to compile --
+        // auto takeTexture = [](minicell::TextureHandle){};
+        // takeTexture(minicell::MeshHandle{});
+    }
+
     // -- Asset Header Section --
     if constexpr (kTestAssetHeader)
     {
@@ -212,6 +300,11 @@ int main()
         const minicell::u64 freq = platform->getTicksPerSecond();
         const std::string exeDir = platform->getExeDir();
         const std::string assetDir = exeDir + "/assets/";
+
+        // -- AssetManager Section --
+        if constexpr (kTestAssetManager) {
+            testAssetManager(assetDir);
+        }
 
         // -- FileSystem Section --
         if constexpr (kTestFileSystem)
@@ -294,29 +387,6 @@ int main()
             std::snprintf(msg, sizeof(msg), "arena frames took %.3f ms", res);
             minicell::logInfo(msg);
         }
-    }
-
-    // -- AssetManager Section --
-    if constexpr (kTestAssetManager)
-    {    
-        const minicell::u8 array[] = {1, 2, 3, 4};
-        auto assets = std::make_unique<minicell::AssetManager>();
-        minicell::LoadedAsset a = assets->loadFromMemory(array, sizeof(array));
-
-        char msg[64];
-        std::snprintf(msg, sizeof(msg), "asset bytes=%zu", a.byteSize());
-        minicell::logInfo(msg);
-
-        std::snprintf(msg, sizeof(msg), "before move data=%p", a.bytes.data());
-        minicell::logInfo(msg);
-
-        minicell::LoadedAsset b = std::move(a);
-        std::snprintf(msg, sizeof(msg), "after move data=%p; sourceBytes=%zu", b.bytes.data(), a.byteSize());
-        minicell::logInfo(msg);
-
-        assets->keep(std::move(a));
-
-        //assets.reset();
     }
 
     // -- RingBuffer Section --

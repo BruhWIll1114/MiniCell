@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include "Types.h"
 
 namespace minicell {
@@ -19,32 +20,56 @@ namespace minicell {
                 {
                 }
 
+            template <typename T>
+            bool read(T& out) 
+            {
+                static_assert(std::is_unsigned_v<T>, "read<T> needs an unsigned integer");
+                if (!canRead(sizeof(T))) { return false; }
+
+                out = 0;
+                for (usize i=0; i < sizeof(T); ++i) 
+                {
+                    //the inner static_cast widen the byte to T before <<. The outer one cast the shifted int back to T.
+                    out |= static_cast<T>(static_cast<T>(m_data[m_offset + i]) << (8 * i));
+                };
+
+                m_offset += sizeof(T);
+                return true;
+            }
+
             //little-Endian {0xCD, 0xAB} -> 0xABCD
-            bool readU16(u16& out) {
-                if (!canRead(2)) { return false; }  // Not enough bytes left
+            bool readU16(u16& out)
+            {
+                return read(out);
 
-                const u16 b0 = m_data[m_offset];
-                const u16 b1 = m_data[m_offset + 1];
+                // Procedure of old readU16
+                // if (!canRead(2)) { return false; }  // Not enough bytes left
 
-                out = (b0 | (b1 << 8));
-                m_offset += 2;
-                return true;
+                // const u16 b0 = m_data[m_offset];
+                // const u16 b1 = m_data[m_offset + 1];
+
+                // out = (b0 | (b1 << 8));
+                // m_offset += 2;
+                // return true;
             }
 
-            bool readU32(u32& out) {
-                if (!canRead(4)) return false;
-
-                const u32 b0 = m_data[m_offset];
-                const u32 b1 = m_data[m_offset + 1];
-                const u32 b2 = m_data[m_offset + 2];
-                const u32 b3 = m_data[m_offset + 3];
-
-                out = (b0 | (b1 << 8) | (b2 << 16) | (b3 << 24));
-                m_offset += 4;
-                return true;
+            bool readU8(u8& out)
+            {
+                return read(out);
             }
 
-            bool readBytes(u8* dst, usize count) {
+            bool readU32(u32& out)
+            {
+                return read(out);
+            }
+
+            bool readU64(u64& out)
+            {
+                return read(out);
+            }
+
+            bool readBytes(u8* dst, usize count)
+            {
                 if (!canRead(count)) return false;
 
                 for (usize i=0; i < count; i++) {
@@ -57,4 +82,5 @@ namespace minicell {
             usize offset() const { return m_offset; }
             usize remaining() const { return m_size - m_offset; }
     };
+
 }

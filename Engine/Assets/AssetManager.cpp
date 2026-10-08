@@ -14,15 +14,26 @@ namespace minicell
         asset.bytes.assign(data, data + size);      // copy size bytes from memory into the asset's own heap buffer
         return asset;
     }
-
-    void AssetManager::keep(LoadedAsset&& asset)    // Takes in a rvalue reference and pass it to the cache, caller's asset left empty
-    {
-        m_cache.push_back(std::move(asset));
-    }
     
     usize AssetManager::cachedCount() const
     {
-        return m_cache.size();
+        return m_texture.size();
+    }
+
+    TextureHandle AssetManager::createTexture(LoadedAsset&& asset)      // Takes in a rvalue reference and pass it to the cache, caller's asset left empty
+    {
+        const TextureHandle h{ static_cast<u32>(m_textures.size()) };
+        m_textures.push_back(std::move(asset));
+        return h;
+    }
+
+    const LoadedAsset* AssetManager::tryGet(TextureHandle h) const
+    {
+        if (!h.isValid() || h.id >= m_textures.size()) return nullptr;
+
+        //pointer invalid after the next createTexture() if the vector reallocates
+        return (&m_textures[h.id]);
+
     }
 
     AssetManager::~AssetManager() 

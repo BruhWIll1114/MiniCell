@@ -64,7 +64,7 @@
 ### Day 7 - 2026-10-05
 
 - **LearnCpp:** 
-  - 22.1 - 22.5 (smart pointer, move semantic, r-value reference, std::move, unique_ptr)
+  - 22.1 - 22.5 (smart pointer, move semantic, r-value reference, std::move, unique_ptr);
 
 - **MiniCell:** 
   - LoadedAsset module added; AssetManager added.
@@ -79,7 +79,7 @@
 ### Day 8 - 2026-10-06
 
 - **LearnCpp:** 
-  - 25.1 - 25.4 (virtual function, override/final)
+  - 25.1 - 25.4 (virtual function, override/final);
 
 - **MiniCell:** 
   - **IPlatform.h** is the parent of all the platform created, act as a base case.
@@ -94,3 +94,18 @@
 - **MiniCell:** 
   - **File System** added with file reading, accessing and writing;
   - Assets copied next to the exe by POST_BUILD; path built from `getExeDir()`;
+
+### Day 10 - 2026-10-08
+
+- **LearnCpp:** 
+  - 11.6 - 11.7 (function templates and instantiation);
+  - 26.1 - 26.2 (class templates);
+
+- **MiniCell:** 
+  - **Binary Reader** updated to add `BinaryReader::read<T>` for better management and flexibility on expending the read type of the function.
+  - Strongly typed `TextureHandler` and `MeshHandler` added to have better differentiation between various asset types. Here is the workflow:
+      - `readBinaryFile()` reads the asset file and load the data into memory
+      - `loadFromMemory()` copies the bytes into a `LoadedAsset`
+      - `createTexture()` moves the asset into storage and return its ID as a `TextureHandle`
+      - `tryGet()` then vakudates the handle and return the stored texture, or `nullptr` if the handle is invalid
+
