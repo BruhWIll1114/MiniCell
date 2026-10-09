@@ -10,6 +10,7 @@ add_executable(MiniCell
     Engine/Assets/AssetManager.cpp
     Engine/Platform/Win32Platform.cpp
     Engine/IO/FileSystem.cpp
+    Engine/Threading/JobSystem.cpp
 )
 
 add_custom_command(TARGET MiniCell POST_BUILD
@@ -29,4 +30,5 @@ target_include_directories(MiniCell PRIVATE
     Engine/IO/
     Engine/Assets/
     Engine/Platform/
+    Engine/Threading/
 )

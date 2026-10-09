@@ -109,3 +109,24 @@
       - `createTexture()` moves the asset into storage and return its ID as a `TextureHandle`
       - `tryGet()` then vakudates the handle and return the stored texture, or `nullptr` if the handle is invalid
 
+### Day 11 - 2026-10-09
+
+- **MiniCell:**
+  - **JobSystem:** added with fixed worker pool. 
+  - **Parallel Sum Simulation:** Three version is being tested.
+    - **Per-chunk partials** (`partials[chunk]`);
+    - Output `partials=1273080`, `reference=1273080` with `runtime of 0.034ms`;
+    - Each job writes only its own slot. Reads of data do not race. 
+    - Each worker does a plain += into a local sum, then one store to partials[chunk]. Output is correct and stable;
+
+    - **Shared atomic** (`atomicTotal.fetch_add(data[i])`)
+    - Output `partials=1273080`, `reference=1273080` with `runtime of 0.156ms`;
+    - Every bytes hits one cache line. More cores fight the same cache line, so parallelism does not buy throughput. Output is correct but slower;
+
+    - **Shared racy** (no lock)
+    - Output  racy trial 1: 621273 (undefined behavior); racy trial 2: 1146754 (undefined behavior);
+              racy trial 3: 590701 (undefined behavior); racy trial 4: 635769 (undefined behavior);
+              racy trial 5: 705116 (undefined behavior); racy trial 6: 874957 (undefined behavior);
+              racy trial 7: 819573 (undefined behavior); racy trial 8: 803797 (undefined behavior);
+              racy trial 9: 522034 (undefined behavior); racy trial 10: 714584 (undefined behavior);
+    - Two workers can read the same old value. Data race happen. Output is incorrect.

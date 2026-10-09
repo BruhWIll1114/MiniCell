@@ -17,7 +17,7 @@ namespace minicell
     
     usize AssetManager::cachedCount() const
     {
-        return m_texture.size();
+        return m_textures.size();
     }
 
     TextureHandle AssetManager::createTexture(LoadedAsset&& asset)      // Takes in a rvalue reference and pass it to the cache, caller's asset left empty

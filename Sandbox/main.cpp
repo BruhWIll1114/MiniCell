@@ -3,6 +3,8 @@
 #include <cstring>
 #include <memory>
 #include <vector>
+#include <array>
+#include <atomic>
 #include "Logger.h"
 #include "MCAssert.h"
 #include "Types.h"
@@ -14,6 +16,7 @@
 #include "IPlatform.h"
 #include "FileSystem.h"
 #include "Handle.h"
+#include "JobSystem.h"
 
 // ---- Test section switches ----
 constexpr bool kTestScopeGuard    = true;
@@ -25,7 +28,112 @@ constexpr bool kTestWin32Platform = false;
 constexpr bool kTestAssetManager  = true;
 constexpr bool kTestRingBuffer    = false;
 constexpr bool kTestHandle        = false;
+constexpr bool kRunRacyExperiment = false;
 
+void testParallelSum()
+{
+    constexpr minicell::usize kWorkerCount = 4;
+
+    std::array<minicell::u8, 10000> data{};
+    for (minicell::usize i = 0; i < data.size(); ++i) {
+        data[i] = static_cast<minicell::u8>(i % 256);
+    }
+
+    minicell::u64 referenceTotal = 0;
+    for (minicell::u8 value : data) {
+        referenceTotal += value;
+    }
+
+    std::unique_ptr<minicell::IPlatform> platform = minicell::createPlatform();
+    minicell::JobSystem jobs(kWorkerCount);
+    const minicell::u64 ticksPerSecond = platform->getTicksPerSecond();
+
+    // Wake every worker before measuring so thread startup does not skew one version.
+    for (minicell::usize i = 0; i < kWorkerCount; ++i) {
+        jobs.submit([] {});
+    }
+    jobs.waitIdle();
+
+    std::array<minicell::u64, kWorkerCount> partials{};
+    const minicell::u64 partialStart = platform->getTicks();
+    for (minicell::usize chunk = 0; chunk < kWorkerCount; ++chunk) {
+        jobs.submit([chunk, &data, &partials] {
+            const minicell::usize chunkSize  = data.size() / partials.size();
+            const minicell::usize begin      = chunk * chunkSize;
+            const minicell::usize end        = begin + chunkSize;
+
+            minicell::u64 sum = 0;
+            for (minicell::usize i = begin; i < end; ++i) {
+                sum += data[i];
+            }
+            partials[chunk] = sum;
+        });
+    }
+    jobs.waitIdle();
+    const minicell::u64 partialEnd = platform->getTicks();
+
+    minicell::u64 partialTotal = 0;
+    for (minicell::u64 partial : partials) {
+        partialTotal += partial;
+    }
+
+    std::atomic<minicell::u64> atomicTotal{0};
+    const minicell::u64 atomicStart = platform->getTicks();
+    for (minicell::usize chunk = 0; chunk < kWorkerCount; ++chunk) {
+        jobs.submit([chunk, &data, &atomicTotal] {
+            const minicell::usize chunkSize = data.size() / kWorkerCount;
+            const minicell::usize begin = chunk * chunkSize;
+            const minicell::usize end = begin + chunkSize;
+
+            for (minicell::usize i = begin; i < end; ++i) {
+                atomicTotal.fetch_add(data[i], std::memory_order_relaxed);
+            }
+        });
+    }
+    jobs.waitIdle();
+    const minicell::u64 atomicEnd = platform->getTicks();
+
+    const double partialMilliseconds =
+        (partialEnd - partialStart) * 1000.0 / ticksPerSecond;
+    const double atomicMilliseconds =
+        (atomicEnd - atomicStart) * 1000.0 / ticksPerSecond;
+
+    std::printf(
+        "partials=%llu reference=%llu time=%.3f ms\n",
+        static_cast<unsigned long long>(partialTotal),
+        static_cast<unsigned long long>(referenceTotal),
+        partialMilliseconds);
+    std::printf(
+        "atomic=%llu reference=%llu time=%.3f ms\n",
+        static_cast<unsigned long long>(atomicTotal.load(std::memory_order_relaxed)),
+        static_cast<unsigned long long>(referenceTotal),
+        atomicMilliseconds);
+
+    if constexpr (kRunRacyExperiment) {
+        for (minicell::usize trial = 0; trial < 10; ++trial) {
+            minicell::u64 racyTotal = 0;
+            for (minicell::usize chunk = 0; chunk < kWorkerCount; ++chunk) {
+                jobs.submit([chunk, &data, &racyTotal] {
+                    const minicell::usize chunkSize = data.size() / kWorkerCount;
+                    const minicell::usize begin = chunk * chunkSize;
+                    const minicell::usize end = begin + chunkSize;
+
+                    for (minicell::usize i = begin; i < end; ++i) {
+                        racyTotal += data[i]; // Intentional data race for this experiment.
+                    }
+                });
+            }
+            jobs.waitIdle();
+            std::printf(
+                "racy trial %zu: %llu (undefined behavior)\n",
+                trial + 1,
+                static_cast<unsigned long long>(racyTotal));
+        }
+    }
+
+    std::printf(
+        "Per-chunk partials avoid contention on one shared atomic variable.\n");
+}
 
 // -- AssetManager Section --
 static int g_amFailures = 0;
@@ -276,6 +384,8 @@ int main()
     }
 
     minicell::logInfo("MiniCell starting...");
+
+    testParallelSum();
 
     // -- Handle Section --
     if constexpr (kTestHandle) {
